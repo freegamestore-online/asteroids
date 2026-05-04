@@ -1,0 +1,13 @@
+{
+  "name": "asteroids",
+  "private": true,
+  "packageManager": "pnpm@10.30.3",
+  "engines": { "node": ">=22" },
+  "pnpm": { "onlyBuiltDependencies": ["esbuild"] },
+  "scripts": {
+    "dev": "pnpm --filter @asteroids/web dev",
+    "build": "pnpm --filter @asteroids/web build",
+    "preview": "pnpm --filter @asteroids/web preview",
+    "typecheck": "pnpm --filter @asteroids/web exec tsc -b"
+  }
+}
