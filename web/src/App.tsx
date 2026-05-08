@@ -56,6 +56,15 @@ export default function App() {
             { label: "Best", value: bestScore },
           ]}
           actions={<GameAuth />}
+          rules={
+            <div>
+              <h3 style={{ fontWeight: 700 }}>Asteroids</h3>
+              <h4 style={{ fontWeight: 600 }}>Rules</h4>
+              <ul><li>Break asteroids into smaller pieces</li><li>Screen wraps around — don't get hit</li></ul>
+              <h4 style={{ fontWeight: 600 }}>Controls</h4>
+              <ul><li>Left/Right arrows to rotate</li><li>Up arrow to thrust</li><li>Space to shoot</li></ul>
+            </div>
+          }
         />
       }
     >
