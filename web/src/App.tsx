@@ -13,6 +13,7 @@ export default function App() {
   const [phase, setPhase] = useState<"menu" | "playing" | "over">("playing");
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(getBestScore);
+  const [paused, setPaused] = useState(false);
   const scoreRef = useRef(0);
 
   const handleScore = useCallback((s: number) => {
@@ -55,6 +56,9 @@ export default function App() {
             { label: "Score", value: score, accent: true },
             { label: "Best", value: bestScore },
           ]}
+          onPlayPause={phase === "playing" ? () => setPaused(p => !p) : undefined}
+          paused={paused}
+          onRestart={start}
           actions={<GameAuth />}
           rules={
             <div>
@@ -70,7 +74,7 @@ export default function App() {
     >
       <div className="relative w-full h-full">
         {phase === "playing" ? (
-          <Game onScore={handleScore} onGameOver={handleGameOver} />
+          <Game onScore={handleScore} onGameOver={handleGameOver} paused={paused} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <p

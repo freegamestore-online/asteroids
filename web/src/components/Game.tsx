@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback } from "react";
 interface GameProps {
   onScore: (score: number) => void;
   onGameOver: () => void;
+  paused?: boolean;
 }
 
 /* ---------- constants ---------- */
@@ -435,18 +436,20 @@ function render(ctx: CanvasRenderingContext2D, s: State): void {
 
 /* ---------- component ---------- */
 
-export function Game({ onScore, onGameOver }: GameProps) {
+export function Game({ onScore, onGameOver, paused }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<State | null>(null);
   const inputRef = useRef<Input>({ left: false, right: false, thrust: false, shoot: false });
   const onScoreRef = useRef(onScore);
   const onGameOverRef = useRef(onGameOver);
+  const pausedRef = useRef(paused);
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
   const gameOverFiredRef = useRef(false);
 
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
+  pausedRef.current = paused;
 
   const getSize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -560,6 +563,11 @@ export function Game({ onScore, onGameOver }: GameProps) {
     lastTimeRef.current = 0;
     const loop = (time: number) => {
       if (lastTimeRef.current === 0) lastTimeRef.current = time;
+      if (pausedRef.current) {
+        lastTimeRef.current = time;
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
       const dt = Math.min((time - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = time;
 
