@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback } from "react";
+import { useGameSounds } from "@freegamestore/games";
 
 interface GameProps {
   onScore: (score: number) => void;
@@ -446,10 +447,13 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
   const gameOverFiredRef = useRef(false);
+  const sounds = useGameSounds();
+  const soundsRef = useRef(sounds);
 
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
   pausedRef.current = paused;
+  soundsRef.current = sounds;
 
   const getSize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -572,11 +576,23 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
       lastTimeRef.current = time;
 
       const s = stateRef.current!;
+      const prevScore = s.score;
+      const prevBullets = s.bullets.length;
       update(s, inputRef.current, dt);
       onScoreRef.current(s.score);
 
+      // Sound on shoot (new bullet appeared)
+      if (s.bullets.length > prevBullets) {
+        soundsRef.current.playMove();
+      }
+      // Sound on asteroid destroy (score increased)
+      if (s.score > prevScore) {
+        soundsRef.current.playScore();
+      }
+
       if (s.gameOver && !gameOverFiredRef.current) {
         gameOverFiredRef.current = true;
+        soundsRef.current.playGameOver();
         onGameOverRef.current();
       }
 
