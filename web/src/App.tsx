@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { GameShell, GameTopbar } from "@freeappstore/games";
+import { GameShell, GameTopbar } from "@freegamestore/games";
 import { Game } from "./components/Game";
 
 const BEST_SCORE_KEY = "freeasteroids-best";
