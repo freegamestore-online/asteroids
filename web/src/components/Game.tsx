@@ -4,6 +4,7 @@ import { useGameSounds } from "@freegamestore/games";
 interface GameProps {
   onScore: (score: number) => void;
   onGameOver: () => void;
+  onStats?: (stats: { lives: number; level: number }) => void;
   paused?: boolean;
 }
 
@@ -406,43 +407,18 @@ function render(ctx: CanvasRenderingContext2D, s: State): void {
     }
   }
 
-  // HUD - lives
-  ctx.save();
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1.5;
-  for (let i = 0; i < s.lives; i++) {
-    ctx.save();
-    ctx.translate(30 + i * 28, 30);
-    ctx.rotate(-Math.PI / 2);
-    ctx.beginPath();
-    const r = 8;
-    ctx.moveTo(r, 0);
-    ctx.lineTo(-r * 0.7, -r * 0.7);
-    ctx.lineTo(-r * 0.4, 0);
-    ctx.lineTo(-r * 0.7, r * 0.7);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
-  ctx.restore();
-
-  // HUD - level
-  ctx.fillStyle = "#6b7280";
-  ctx.font = "14px Manrope, system-ui, sans-serif";
-  ctx.textAlign = "right";
-  ctx.fillText(`Level ${s.level}`, w - 20, 30);
-
   ctx.restore();
 }
 
 /* ---------- component ---------- */
 
-export function Game({ onScore, onGameOver, paused }: GameProps) {
+export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<State | null>(null);
   const inputRef = useRef<Input>({ left: false, right: false, thrust: false, shoot: false });
   const onScoreRef = useRef(onScore);
   const onGameOverRef = useRef(onGameOver);
+  const onStatsRef = useRef(onStats);
   const pausedRef = useRef(paused);
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
@@ -452,6 +428,7 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
 
   onScoreRef.current = onScore;
   onGameOverRef.current = onGameOver;
+  onStatsRef.current = onStats;
   pausedRef.current = paused;
   soundsRef.current = sounds;
 
@@ -580,6 +557,7 @@ export function Game({ onScore, onGameOver, paused }: GameProps) {
       const prevBullets = s.bullets.length;
       update(s, inputRef.current, dt);
       onScoreRef.current(s.score);
+      onStatsRef.current?.({ lives: s.lives, level: s.level });
 
       // Sound on shoot (new bullet appeared)
       if (s.bullets.length > prevBullets) {
