@@ -10,6 +10,9 @@ importers:
 
   web:
     dependencies:
+      '@freeappstore/games':
+        specifier: ^0.3.0
+        version: 0.3.0(react@19.2.5)
       react:
         specifier: ^19
         version: 19.2.5
@@ -282,6 +285,12 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@freeappstore/games@0.3.0':
+    resolution: {integrity: sha512-ZR9VMo+7/FZXYhN/TayL2VmInH9ztJfjsN56BYhEHGWcdRQKXY/YGZYOUOgQ0KzYARIosbf2Wx6eBF68KeGSwA==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      react: ^19.0.0
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -1042,6 +1051,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@freeappstore/games@0.3.0(react@19.2.5)':
+    dependencies:
+      react: 19.2.5
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
