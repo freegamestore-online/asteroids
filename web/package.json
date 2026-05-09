@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@freegamestore/games": "^0.11.0",
+    "@freegamestore/games": "^0.12.0",
     "react": "^19",
     "react-dom": "^19"
   },
