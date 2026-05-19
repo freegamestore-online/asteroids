@@ -5,6 +5,7 @@
 :root {
   /* Neutrals */
   --paper: #ffffff;
+  --bg: var(--paper);
   --ink: #1a1a1a;
   --muted: #6b7280;
   --line: #e5e7eb;
@@ -28,6 +29,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --paper: #0f0f0f;
+    --bg: var(--paper);
     --ink: #f5f5f5;
     --muted: #9ca3af;
     --line: #2d2d2d;
