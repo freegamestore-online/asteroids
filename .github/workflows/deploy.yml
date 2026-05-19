@@ -1,37 +1,23 @@
-name: Deploy to Cloudflare Pages
+name: CI / Deploy
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+
+# Most-recent push/PR for a ref wins; older runs are cancelled so a deploy
+# never wins a race against a fresh build of the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  ci-and-deploy:
+    uses: freegamestore-online/freegamestore/.github/workflows/game-ci.yml@main
+    with:
+      cf_project: freeasteroidsapp
     permissions:
       contents: read
       deployments: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build
-
-      # Platform compliance gate — runs every check in @freegamestore/compliance,
-      # including the PWA mandate. Exits non-zero on any fail; the deploy
-      # step below never runs for non-compliant builds.
-      - name: Platform compliance
-        run: npx -y @freegamestore/cli@latest check
-
-      - run: npx wrangler pages deploy web/dist --project-name=$CF_PROJECT
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: c1089bfcc43c1c6c2aa89e584e86f0bc
-          CF_PROJECT: freeasteroidsapp
+    secrets: inherit
