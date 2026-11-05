@@ -87,6 +87,42 @@ interface Input {
   shoot: boolean;
 }
 
+type Control = keyof Input;
+
+const KEY_CONTROLS: Record<string, Control> = {
+  arrowleft: "left",
+  a: "left",
+  arrowright: "right",
+  d: "right",
+  arrowup: "thrust",
+  w: "thrust",
+  " ": "shoot",
+};
+
+/** Case-insensitive so WASD still works with Caps Lock or Shift held. */
+export function controlForKey(key: string): Control | undefined {
+  return KEY_CONTROLS[key.toLowerCase()];
+}
+
+// Touch layout: outer quarters rotate, centre top thrusts, centre bottom fires.
+const TOUCH_SIDE = 0.25;
+const TOUCH_SPLIT = 0.5;
+
+/** x, y are fractions (0..1) of the canvas size. */
+export function touchRegion(x: number, y: number): Control {
+  if (x < TOUCH_SIDE) return "left";
+  if (x > 1 - TOUCH_SIDE) return "right";
+  return y < TOUCH_SPLIT ? "thrust" : "shoot";
+}
+
+/** Size the backing store in device pixels; drawing stays in CSS pixels. */
+export function sizeCanvas(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 /* ---------- helpers ---------- */
 
 function wrap(pos: Vec2, w: number, h: number): void {
@@ -325,7 +361,34 @@ function update(s: State, input: Input, dt: number): void {
 
 /* ---------- render ---------- */
 
-function render(ctx: CanvasRenderingContext2D, s: State): void {
+function renderTouchZones(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  const left = w * TOUCH_SIDE;
+  const right = w * (1 - TOUCH_SIDE);
+  const split = h * TOUCH_SPLIT;
+  ctx.save();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 6]);
+  ctx.beginPath();
+  ctx.moveTo(left, 0);
+  ctx.lineTo(left, h);
+  ctx.moveTo(right, 0);
+  ctx.lineTo(right, h);
+  ctx.moveTo(left, split);
+  ctx.lineTo(right, split);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+  ctx.font = "600 12px Manrope, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText("\u25C0 ROTATE", left / 2, h - 16);
+  ctx.fillText("ROTATE \u25B6", (right + w) / 2, h - 16);
+  ctx.fillText("THRUST", w / 2, split - 16);
+  ctx.fillText("FIRE", w / 2, h - 16);
+  ctx.restore();
+}
+
+function render(ctx: CanvasRenderingContext2D, s: State, showTouchZones: boolean): void {
   const { width: w, height: h, ship } = s;
 
   // Screen shake
@@ -341,6 +404,8 @@ function render(ctx: CanvasRenderingContext2D, s: State): void {
   // Background
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, w, h);
+
+  if (showTouchZones) renderTouchZones(ctx, w, h);
 
   // Asteroids
   ctx.strokeStyle = "#d4d4d4";
@@ -447,40 +512,34 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
 
     const ctx = canvas.getContext("2d")!;
     const { w, h } = getSize();
-    canvas.width = w;
-    canvas.height = h;
+    sizeCanvas(canvas, ctx, w, h);
     stateRef.current = createInitialState(w, h);
     gameOverFiredRef.current = false;
 
     // Keyboard
     const handleKeyDown = (e: KeyboardEvent) => {
-      const inp = inputRef.current;
-      if (e.key === "ArrowLeft" || e.key === "a") inp.left = true;
-      if (e.key === "ArrowRight" || e.key === "d") inp.right = true;
-      if (e.key === "ArrowUp" || e.key === "w") inp.thrust = true;
-      if (e.key === " ") { inp.shoot = true; e.preventDefault(); }
+      const control = controlForKey(e.key);
+      if (!control) return;
+      inputRef.current[control] = true;
+      if (control === "shoot") e.preventDefault();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      const inp = inputRef.current;
-      if (e.key === "ArrowLeft" || e.key === "a") inp.left = false;
-      if (e.key === "ArrowRight" || e.key === "d") inp.right = false;
-      if (e.key === "ArrowUp" || e.key === "w") inp.thrust = false;
-      if (e.key === " ") inp.shoot = false;
+      const control = controlForKey(e.key);
+      if (control) inputRef.current[control] = false;
+    };
+    // A key released while the window is unfocused never fires keyup
+    const handleBlur = () => {
+      inputRef.current = { left: false, right: false, thrust: false, shoot: false };
     };
 
-    // Touch controls:
-    // left quarter = rotate left, right quarter = rotate right
-    // top half = thrust, bottom center = shoot
-    const activeTouches = new Map<number, { region: string }>();
+    // Touch controls: see touchRegion(). Zones are drawn on coarse-pointer
+    // devices, or from the first touch on anything else.
+    let showTouchZones = window.matchMedia("(pointer: coarse)").matches;
+    const activeTouches = new Map<number, Control>();
 
-    const getRegion = (touch: Touch): string => {
+    const getRegion = (touch: Touch): Control => {
       const rect = canvas.getBoundingClientRect();
-      const x = (touch.clientX - rect.left) / rect.width;
-      const y = (touch.clientY - rect.top) / rect.height;
-      if (x < 0.25) return "left";
-      if (x > 0.75) return "right";
-      if (y < 0.5) return "thrust";
-      return "shoot";
+      return touchRegion((touch.clientX - rect.left) / rect.width, (touch.clientY - rect.top) / rect.height);
     };
 
     const updateTouchInput = () => {
@@ -489,19 +548,15 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
       inp.right = false;
       inp.thrust = false;
       inp.shoot = false;
-      for (const [, v] of activeTouches) {
-        if (v.region === "left") inp.left = true;
-        if (v.region === "right") inp.right = true;
-        if (v.region === "thrust") inp.thrust = true;
-        if (v.region === "shoot") inp.shoot = true;
-      }
+      for (const region of activeTouches.values()) inp[region] = true;
     };
 
     const handleTouchStart = (e: TouchEvent) => {
       e.preventDefault();
+      showTouchZones = true;
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]!;
-        activeTouches.set(t.identifier, { region: getRegion(t) });
+        activeTouches.set(t.identifier, getRegion(t));
       }
       updateTouchInput();
     };
@@ -509,8 +564,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
       e.preventDefault();
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i]!;
-        const existing = activeTouches.get(t.identifier);
-        if (existing) existing.region = getRegion(t);
+        if (activeTouches.has(t.identifier)) activeTouches.set(t.identifier, getRegion(t));
       }
       updateTouchInput();
     };
@@ -525,6 +579,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
     canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
     canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
     canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -533,8 +588,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
     // Resize
     const handleResize = () => {
       const { w: nw, h: nh } = getSize();
-      canvas.width = nw;
-      canvas.height = nh;
+      sizeCanvas(canvas, ctx, nw, nh);
       if (stateRef.current) {
         stateRef.current.width = nw;
         stateRef.current.height = nh;
@@ -576,7 +630,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
         onGameOverRef.current();
       }
 
-      render(ctx, s);
+      render(ctx, s, showTouchZones);
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
@@ -585,6 +639,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
       canvas.removeEventListener("touchstart", handleTouchStart);
       canvas.removeEventListener("touchmove", handleTouchMove);
       canvas.removeEventListener("touchend", handleTouchEnd);

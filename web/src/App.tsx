@@ -49,7 +49,8 @@ export default function App() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (phase !== "playing" && (e.key === " " || e.key === "Enter")) {
+      // Ignore auto-repeat: Space held to shoot would skip the game-over screen
+      if (phase !== "playing" && !e.repeat && (e.key === " " || e.key === "Enter")) {
         start();
       }
     };
@@ -78,7 +79,7 @@ export default function App() {
               <h4 style={{ fontWeight: 600 }}>Rules</h4>
               <ul><li>Break asteroids into smaller pieces</li><li>Screen wraps around — don't get hit</li></ul>
               <h4 style={{ fontWeight: 600 }}>Controls</h4>
-              <ul><li>Left/Right arrows to rotate</li><li>Up arrow to thrust</li><li>Space to shoot</li></ul>
+              <ul><li>Left/Right arrows to rotate</li><li>Up arrow to thrust</li><li>Space to shoot</li><li>Touch: sides rotate, top centre thrusts, bottom centre fires</li></ul>
             </div>
           }
         />
