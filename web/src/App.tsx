@@ -14,6 +14,7 @@ export default function App() {
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(getBestScore);
   const [paused, setPaused] = useState(false);
+  const [gameKey, setGameKey] = useState(0);
   const [lives, setLives] = useState(3);
   const [level, setLevel] = useState(1);
   const scoreRef = useRef(0);
@@ -41,6 +42,8 @@ export default function App() {
   const start = useCallback(() => {
     setScore(0);
     scoreRef.current = 0;
+    setPaused(false);
+    setGameKey((k) => k + 1);
     setPhase("playing");
   }, []);
 
@@ -83,7 +86,7 @@ export default function App() {
     >
       <div className="relative w-full h-full">
         {phase === "playing" ? (
-          <Game onScore={handleScore} onGameOver={handleGameOver} onStats={handleStats} paused={paused} />
+          <Game key={gameKey} onScore={handleScore} onGameOver={handleGameOver} onStats={handleStats} paused={paused} />
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <p

@@ -315,6 +315,8 @@ function update(s: State, input: Input, dt: number): void {
     for (let i = 0; i < count; i++) {
       s.asteroids.push(spawnAsteroid(w, h, 0));
     }
+    // The new wave spawns at the edges wherever the ship is
+    ship.invulnTimer = INVULN_TIME;
   }
 
   // Decay shake
