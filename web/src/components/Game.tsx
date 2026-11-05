@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { useGameSounds } from "@freegamestore/games";
 
 interface GameProps {
@@ -208,6 +208,15 @@ function createInitialState(w: number, h: number): State {
 
 /* ---------- update ---------- */
 
+function moveAsteroids(s: State, dt: number): void {
+  for (const a of s.asteroids) {
+    a.pos.x += a.vel.x * dt;
+    a.pos.y += a.vel.y * dt;
+    a.angle += a.rotSpeed * dt;
+    wrap(a.pos, s.width, s.height);
+  }
+}
+
 function update(s: State, input: Input, dt: number): void {
   if (s.gameOver) return;
 
@@ -218,12 +227,7 @@ function update(s: State, input: Input, dt: number): void {
     s.deathTimer -= dt;
     s.shakeTimer -= dt;
     // Still move asteroids during death pause
-    for (const a of s.asteroids) {
-      a.pos.x += a.vel.x * dt;
-      a.pos.y += a.vel.y * dt;
-      a.angle += a.rotSpeed * dt;
-      wrap(a.pos, w, h);
-    }
+    moveAsteroids(s, dt);
     return;
   }
 
@@ -276,13 +280,7 @@ function update(s: State, input: Input, dt: number): void {
   }
   s.bullets = s.bullets.filter((b) => b.life > 0);
 
-  // Move asteroids
-  for (const a of s.asteroids) {
-    a.pos.x += a.vel.x * dt;
-    a.pos.y += a.vel.y * dt;
-    a.angle += a.rotSpeed * dt;
-    wrap(a.pos, w, h);
-  }
+  moveAsteroids(s, dt);
 
   // Bullet-asteroid collision
   const newAsteroids: Asteroid[] = [];
@@ -499,16 +497,14 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
   pausedRef.current = paused;
   soundsRef.current = sounds;
 
-  const getSize = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { w: 800, h: 600 };
-    const rect = canvas.parentElement!.getBoundingClientRect();
-    return { w: rect.width, h: rect.height };
-  }, []);
-
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const getSize = () => {
+      const rect = canvas.parentElement!.getBoundingClientRect();
+      return { w: rect.width, h: rect.height };
+    };
 
     const ctx = canvas.getContext("2d")!;
     const { w, h } = getSize();
@@ -646,7 +642,7 @@ export function Game({ onScore, onGameOver, onStats, paused }: GameProps) {
       canvas.removeEventListener("touchcancel", handleTouchEnd);
       window.removeEventListener("resize", handleResize);
     };
-  }, [getSize]);
+  }, []);
 
   return (
     <canvas
